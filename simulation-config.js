@@ -41,13 +41,11 @@ module.exports = {
       MAX_CONCURRENT_CONNECTIONS: 800,
     },
   },
-
   MESSAGE_CONFIG: {
     LENGTH: { min: 5, max: 200 },
     KEYWORDS_PER_MESSAGE: { min: 3, max: 8 },
     VARIETY: 0.8,
   },
-
   CONNECTION_CONFIG: {
     BATCH_SIZE: 500,
     BATCH_DELAY: 5,
@@ -55,22 +53,19 @@ module.exports = {
     RECONNECTION: false,
     FORCE_WEBSOCKET: true,
   },
-
   MONITORING: {
     LOG_INTERVAL: 1000,
     RATE_HISTORY_SIZE: 20,
     PERFORMANCE_THRESHOLD: 0.7,
     ERROR_ALERT_THRESHOLD: 1000,
   },
-
   REDIS_CONFIG: {
-    URL: process.env.REDIS_URL || "redis://localhost:6379",
+    URL: process.env.REDIS_URL || "redis:
     CONNECTION_TIMEOUT: 5000,
     RETRY_ATTEMPTS: 3,
   },
-
   BACKEND_CONFIG: {
-    URL: process.env.BACKEND_URL || "http://localhost:3001",
+    URL: process.env.BACKEND_URL || "http://localhost:3001
     HEALTH_CHECK_INTERVAL: 5000,
     METRICS_INTERVAL: 1000,
   },

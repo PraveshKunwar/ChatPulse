@@ -3,7 +3,6 @@ import { useSocket } from "./useSocket";
 import MetricsCard from "./components/MetricsCard";
 import KeywordsChart from "./components/KeywordsChart";
 import ConnectionStatus from "./components/ConnectionStatus";
-
 const UserIcon = () => (
   <svg
     className="w-6 h-6 text-white"
@@ -19,7 +18,6 @@ const UserIcon = () => (
     />
   </svg>
 );
-
 const MessageIcon = () => (
   <svg
     className="w-6 h-6 text-white"
@@ -35,7 +33,6 @@ const MessageIcon = () => (
     />
   </svg>
 );
-
 const ActivityIcon = () => (
   <svg
     className="w-6 h-6 text-white"
@@ -51,13 +48,11 @@ const ActivityIcon = () => (
     />
   </svg>
 );
-
 function App() {
   const { messagesPerSec, activeUsers, keywords, isConnected } = useSocket();
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -85,10 +80,9 @@ function App() {
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
+      {}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Metrics Cards */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <MetricsCard
             title="Active Users"
@@ -112,12 +106,10 @@ function App() {
             color={isConnected ? "green" : "red"}
           />
         </div>
-
-        {/* Charts Section */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <KeywordsChart keywords={keywords} />
-
-          {/* Real-time Activity Feed */}
+          {}
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Real-time Activity
@@ -146,8 +138,7 @@ function App() {
             </div>
           </div>
         </div>
-
-        {/* Footer Info */}
+        {}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>
             Data updates every second • Built with React, Socket.IO, and Redis
@@ -157,5 +148,4 @@ function App() {
     </div>
   );
 }
-
 export default App;

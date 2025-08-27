@@ -12,12 +12,11 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
   maxHttpBufferSize: 1e6,
-  pingTimeout: 60000,
-  pingInterval: 25000,
+  pingTimeout: 30000,
+  pingInterval: 10000,
   upgradeTimeout: 10000,
   allowUpgrades: true,
   transports: ["websocket", "polling"],
-  maxHttpBufferSize: 1e6,
   allowRequest: (req, callback) => {
     const clientIP =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
@@ -67,17 +66,22 @@ const activeUsers = new Map();
 const userSockets = new Map();
 
 setInterval(() => {
+  let cleanedCount = 0;
+
   for (const [socketId, userId] of userSockets.entries()) {
     if (!io.sockets.sockets.has(socketId)) {
       userSockets.delete(socketId);
       activeUsers.delete(userId);
+      cleanedCount++;
     }
   }
 
-  if (global.gc) {
-    global.gc();
+  if (cleanedCount > 0) {
+    console.log(`🧹 Cleaned up ${cleanedCount} zombie connections`);
   }
-}, 30000);
+
+  if (global.gc) global.gc();
+}, 10000);
 
 let messageCount = 0;
 let lastMetricsTime = Date.now();
@@ -126,7 +130,22 @@ setInterval(async () => {
 }, 1000);
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  if (io.engine.clientsCount > 1000) {
+    console.log(
+      `🚫 Connection limit reached (${io.engine.clientsCount}), rejecting ${socket.id}`
+    );
+    socket.disconnect(true);
+    return;
+  }
+
+  console.log(`User connected: ${socket.id} (${io.engine.clientsCount} total)`);
+
+  // Force cleanup of rejected connections
+  socket.on("disconnect", () => {
+    if (io.engine.clientsCount > 1000) {
+      console.log(`🧹 Cleaning up rejected connection ${socket.id}`);
+    }
+  });
 
   const connectionTimeout = setTimeout(() => {
     if (!userSockets.has(socket.id)) {
@@ -174,8 +193,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("user_left", ({ userId }) => {
-    activeUsers.delete(userId);
-    userSockets.delete(socket.id);
+    const socketId = activeUsers.get(userId);
+    if (socketId) {
+      activeUsers.delete(userId);
+      userSockets.delete(socketId);
+    }
 
     io.emit("metrics", { activeUsers: activeUsers.size });
     console.log(`User ${userId} left (${activeUsers.size} total)`);
@@ -248,6 +270,52 @@ app.get("/debug/keywords", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+app.get("/cleanup", (req, res) => {
+  let cleanedCount = 0;
+
+  for (const [socketId, userId] of userSockets.entries()) {
+    if (!io.sockets.sockets.has(socketId)) {
+      userSockets.delete(socketId);
+      activeUsers.delete(userId);
+      cleanedCount++;
+    }
+  }
+
+  if (global.gc) global.gc();
+
+  res.json({
+    message: `Cleaned up ${cleanedCount} zombie connections`,
+    activeUsers: activeUsers.size,
+    totalSockets: io.engine.clientsCount,
+    memory: process.memoryUsage(),
+  });
+});
+
+app.get("/nuclear-cleanup", (req, res) => {
+  const beforeCount = io.engine.clientsCount;
+
+  for (const [socketId, userId] of userSockets.entries()) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      socket.disconnect(true);
+    }
+  }
+
+  userSockets.clear();
+  activeUsers.clear();
+
+  if (global.gc) global.gc();
+
+  const afterCount = io.engine.clientsCount;
+
+  res.json({
+    message: `Nuclear cleanup: ${beforeCount} → ${afterCount} connections`,
+    activeUsers: activeUsers.size,
+    totalSockets: io.engine.clientsCount,
+    memory: process.memoryUsage(),
+  });
 });
 
 const PORT = process.env.PORT || 3001;

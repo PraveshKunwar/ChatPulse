@@ -8,15 +8,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
 const KeywordsChart = ({ keywords }) => {
   const chartData = Object.entries(keywords || {})
     .map(([key, value]) => ({ name: key, count: value }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
-
   console.log("Processed chart data:", chartData);
-
   if (chartData.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
@@ -33,7 +30,6 @@ const KeywordsChart = ({ keywords }) => {
       </div>
     );
   }
-
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -45,7 +41,6 @@ const KeywordsChart = ({ keywords }) => {
     }
     return null;
   };
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -54,14 +49,12 @@ const KeywordsChart = ({ keywords }) => {
       <p className="text-sm text-gray-600 mb-4">
         Number of messages containing each keyword
       </p>
-
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 50, bottom: 80 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-
           <XAxis
             dataKey="name"
             angle={-45}
@@ -72,7 +65,6 @@ const KeywordsChart = ({ keywords }) => {
             axisLine={{ stroke: "#d1d5db" }}
             tickLine={{ stroke: "#d1d5db" }}
           />
-
           <YAxis
             label={{
               value: "Number of Messages",
@@ -84,9 +76,7 @@ const KeywordsChart = ({ keywords }) => {
             axisLine={{ stroke: "#d1d5db" }}
             tickLine={{ stroke: "#d1d5db" }}
           />
-
           <Tooltip content={<CustomTooltip />} />
-
           <Bar
             dataKey="count"
             fill="#3b82f6"
@@ -100,5 +90,4 @@ const KeywordsChart = ({ keywords }) => {
     </div>
   );
 };
-
 export default KeywordsChart;

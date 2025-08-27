@@ -145,3 +145,5 @@ coverage/
 # Optional: Uncomment if you want to ignore these
 # .env.production
 # .env.staging
+
+*.md

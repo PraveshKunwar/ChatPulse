@@ -1,5 +1,4 @@
 import React from "react";
-
 const MetricsCard = ({ title, value, subtitle, icon, color = "blue" }) => {
   const colorClasses = {
     blue: "bg-blue-500",
@@ -8,7 +7,6 @@ const MetricsCard = ({ title, value, subtitle, icon, color = "blue" }) => {
     orange: "bg-orange-500",
     red: "bg-red-500",
   };
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
       <div className="flex items-center">
@@ -22,5 +20,4 @@ const MetricsCard = ({ title, value, subtitle, icon, color = "blue" }) => {
     </div>
   );
 };
-
 export default MetricsCard;
