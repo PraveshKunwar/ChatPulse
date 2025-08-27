@@ -1,0 +1,77 @@
+module.exports = {
+  LOAD_LEVELS: {
+    LIGHT: {
+      USERS: 100,
+      MESSAGES_PER_SEC: 1000,
+      BURST_SIZE: 10,
+      BURST_INTERVAL: 10,
+      USER_JOIN_RATE: 10,
+      MAX_CONCURRENT_CONNECTIONS: 100,
+    },
+    MEDIUM: {
+      USERS: 1000,
+      MESSAGES_PER_SEC: 5000,
+      BURST_SIZE: 50,
+      BURST_INTERVAL: 10,
+      USER_JOIN_RATE: 25,
+      MAX_CONCURRENT_CONNECTIONS: 500,
+    },
+    HEAVY: {
+      USERS: 5000,
+      MESSAGES_PER_SEC: 10000,
+      BURST_SIZE: 100,
+      BURST_INTERVAL: 10,
+      USER_JOIN_RATE: 50,
+      MAX_CONCURRENT_CONNECTIONS: 1000,
+    },
+    EXTREME: {
+      USERS: 10000,
+      MESSAGES_PER_SEC: 50000,
+      BURST_SIZE: 500,
+      BURST_INTERVAL: 10,
+      USER_JOIN_RATE: 200,
+      MAX_CONCURRENT_CONNECTIONS: 2000,
+    },
+    CUSTOM: {
+      USERS: 2000,
+      MESSAGES_PER_SEC: 8000,
+      BURST_SIZE: 80,
+      BURST_INTERVAL: 10,
+      USER_JOIN_RATE: 40,
+      MAX_CONCURRENT_CONNECTIONS: 800,
+    },
+  },
+
+  MESSAGE_CONFIG: {
+    LENGTH: { min: 5, max: 200 },
+    KEYWORDS_PER_MESSAGE: { min: 3, max: 8 },
+    VARIETY: 0.8,
+  },
+
+  CONNECTION_CONFIG: {
+    BATCH_SIZE: 500,
+    BATCH_DELAY: 5,
+    TIMEOUT: 30000,
+    RECONNECTION: false,
+    FORCE_WEBSOCKET: true,
+  },
+
+  MONITORING: {
+    LOG_INTERVAL: 1000,
+    RATE_HISTORY_SIZE: 20,
+    PERFORMANCE_THRESHOLD: 0.7,
+    ERROR_ALERT_THRESHOLD: 1000,
+  },
+
+  REDIS_CONFIG: {
+    URL: process.env.REDIS_URL || "redis://localhost:6379",
+    CONNECTION_TIMEOUT: 5000,
+    RETRY_ATTEMPTS: 3,
+  },
+
+  BACKEND_CONFIG: {
+    URL: process.env.BACKEND_URL || "http://localhost:3001",
+    HEALTH_CHECK_INTERVAL: 5000,
+    METRICS_INTERVAL: 1000,
+  },
+};
