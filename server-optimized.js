@@ -130,7 +130,7 @@ setInterval(async () => {
 }, 1000);
 
 io.on("connection", (socket) => {
-  if (io.engine.clientsCount > 1000) {
+  if (io.engine.clientsCount > 2000) {
     console.log(
       `🚫 Connection limit reached (${io.engine.clientsCount}), rejecting ${socket.id}`
     );

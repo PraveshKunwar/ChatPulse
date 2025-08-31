@@ -4,14 +4,14 @@ console.log(
   "This version distributes connections across multiple backend instances"
 );
 const BACKEND_INSTANCES = [
-  "http://localhost:3001
-  "http://localhost:3001
-  "http://localhost:3001
+  "http://localhost:3001",
+  "http://localhost:3001",
+  "http://localhost:3001",
 ];
 const CONFIG = {
-  TOTAL_USERS: 3000, 
-  USERS_PER_INSTANCE: 1000, 
-  MESSAGES_PER_SEC: 15000, 
+  TOTAL_USERS: 3000,
+  USERS_PER_INSTANCE: 1000,
+  MESSAGES_PER_SEC: 15000,
   BURST_SIZE: 100,
   BURST_INTERVAL: 50,
   USER_JOIN_RATE: 50,

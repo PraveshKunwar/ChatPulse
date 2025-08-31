@@ -8,86 +8,76 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+
 const KeywordsChart = ({ keywords }) => {
   const chartData = Object.entries(keywords || {})
     .map(([key, value]) => ({ name: key, count: value }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
-  console.log("Processed chart data:", chartData);
-  if (chartData.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Keyword Frequency
-        </h3>
-        <div className="text-center text-gray-500 py-8">
-          No keywords data available yet
-          <br />
-          <small className="text-xs">
-            Debug: keywords prop = {JSON.stringify(keywords)}
-          </small>
-        </div>
-      </div>
-    );
-  }
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-800">{`Keyword: ${label}`}</p>
-          <p className="text-blue-600">{`Messages: ${payload[0].value}`}</p>
+        <div className="bg-black/90 backdrop-blur-xl border border-gray-700/50 rounded-lg p-3 shadow-2xl">
+          <p className="text-white font-semibold">{`${label}`}</p>
+          <p className="text-cyan-400">{`Count: ${payload[0].value}`}</p>
         </div>
       );
     }
     return null;
   };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Keyword Frequency
-      </h3>
-      <p className="text-sm text-gray-600 mb-4">
+    <div className="bg-black/20 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-700/50">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-white">Keyword Frequency</h2>
+        <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
+      </div>
+      <p className="text-gray-400 mb-6">
         Number of messages containing each keyword
       </p>
+
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 50, bottom: 80 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
           <XAxis
             dataKey="name"
             angle={-45}
             textAnchor="end"
             height={100}
-            interval={0}
-            tick={{ fontSize: 12, fill: "#6b7280" }}
-            axisLine={{ stroke: "#d1d5db" }}
-            tickLine={{ stroke: "#d1d5db" }}
+            tick={{ fill: "#9CA3AF", fontSize: 12 }}
           />
           <YAxis
+            tick={{ fill: "#9CA3AF", fontSize: 12 }}
             label={{
               value: "Number of Messages",
               angle: -90,
               position: "insideLeft",
-              style: { textAnchor: "middle", fill: "#374151", fontSize: 14 },
+              style: { textAnchor: "middle", fill: "#9CA3AF" },
             }}
-            tick={{ fontSize: 12, fill: "#6b7280" }}
-            axisLine={{ stroke: "#d1d5db" }}
-            tickLine={{ stroke: "#d1d5db" }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="count"
-            fill="#3b82f6"
+            fill="url(#gradient)"
             radius={[6, 6, 0, 0]}
-            stroke="#1d4ed8"
+            stroke="#3B82F6"
             strokeWidth={2}
             barSize={40}
           />
+          <defs>
+            <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="100%" stopColor="#1D4ED8" />
+            </linearGradient>
+          </defs>
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 };
+
 export default KeywordsChart;
