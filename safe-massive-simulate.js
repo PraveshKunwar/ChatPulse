@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-console.log("🛡️  Starting SAFE Massive ChatPulse Simulation...");
+console.log("🛡️  Starting SAFE Massive Surge Simulation...");
 console.log(
   "This version is designed to test limits without crashing the system"
 );

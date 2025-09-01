@@ -1,5 +1,5 @@
 const { io } = require("socket.io-client");
-console.log("🚀 Starting SCALED ChatPulse Simulation...");
+console.log("🚀 Starting SCALED Surge Simulation...");
 console.log(
   "This version distributes connections across multiple backend instances"
 );

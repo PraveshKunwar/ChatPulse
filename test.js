@@ -1,5 +1,5 @@
 const io = require("socket.io-client");
-console.log("🧪 Testing ChatPulse Backend...");
+console.log("🧪 Testing Surge Backend...");
 const socket = io("http://localhost:3001
 socket.on("connect", () => {
   console.log("✅ WebSocket connected successfully");
@@ -7,7 +7,7 @@ socket.on("connect", () => {
   console.log("✅ User join event sent");
   socket.emit("message_sent", {
     userId: "test-user-1",
-    text: "Hello ChatPulse!",
+    text: "Hello Surge!",
   });
   console.log("✅ Message event sent");
   socket.on("metrics", (data) => {

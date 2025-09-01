@@ -1,5 +1,5 @@
 const io = require("socket.io-client");
-console.log("🚀 Performance Testing ChatPulse...");
+console.log("🚀 Performance Testing Surge...");
 const NUM_USERS = 50;
 const MESSAGES_PER_USER = 100;
 const DELAY_MS = 10;

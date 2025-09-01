@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-console.log("🚀 Starting MASSIVE ChatPulse Simulation...");
+console.log("🚀 Starting MASSIVE Surge Simulation...");
 console.log("This will generate extreme load for stress testing");
 
 // Configuration - adjust these for different load levels

@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-console.log("🔥 Starting EXTREME ChatPulse Simulation...");
+console.log("🔥 Starting EXTREME Surge Simulation...");
 console.log("This will generate maximum possible load - use with caution!");
 
 // EXTREME Configuration - adjust these carefully

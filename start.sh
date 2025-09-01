@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting ChatPulse Analytics Dashboard..."
+echo "🚀 Starting Surge Analytics Dashboard..."
 
 # Check if Redis is running
 if ! redis-cli ping > /dev/null 2>&1; then
@@ -26,7 +26,7 @@ npm start &
 FRONTEND_PID=$!
 
 echo ""
-echo "🎉 ChatPulse is starting up!"
+echo "🎉 Surge is starting up!"
 echo "📊 Dashboard: http://localhost:3000"
 echo "🔌 Backend: http://localhost:3001/health"
 echo "📈 Redis: localhost:6379"
