@@ -69,7 +69,14 @@ const PulseIcon = () => (
 );
 
 function App() {
-  const { messagesPerSec, activeUsers, keywords, isConnected } = useSocket();
+  const {
+    messagesPerSec,
+    activeUsers,
+    keywords,
+    isConnected,
+    connectionAttempts,
+    isReconnecting,
+  } = useSocket();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white font-inter">
@@ -100,7 +107,13 @@ function App() {
                 </p>
               </div>
             </div>
-            <ConnectionStatus isConnected={isConnected} />
+            <div className="w-full sm:w-auto">
+              <ConnectionStatus
+                isConnected={isConnected}
+                connectionAttempts={connectionAttempts || 0}
+                isReconnecting={isReconnecting || false}
+              />
+            </div>
           </div>
         </div>
       </header>

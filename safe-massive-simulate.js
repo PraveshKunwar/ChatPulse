@@ -14,7 +14,7 @@ const CONFIG = {
   MESSAGE_LENGTH: { min: 5, max: 50 },
   CONNECTION_BATCH_SIZE: 100,
   CONNECTION_DELAY: 20,
-  MAX_CONCURRENT_CONNECTIONS: 500,
+  MAX_CONCURRENT_CONNECTIONS: 2500, // ✅ Increased to match your backend
   MEMORY_CHECK_INTERVAL: 5000,
   MAX_MEMORY_USAGE: 500,
 };
@@ -40,7 +40,6 @@ const messageCorpus = [
   "aws",
   "azure",
   "gcp",
-
   "code",
   "test",
   "build",
@@ -51,7 +50,6 @@ const messageCorpus = [
   "monitor",
   "log",
   "debug",
-
   "hello",
   "hi",
   "good",
@@ -60,7 +58,6 @@ const messageCorpus = [
   "agree",
   "understand",
   "question",
-
   "the",
   "and",
   "or",
@@ -84,6 +81,7 @@ let stats = {
   errors: 0,
   memoryWarnings: 0,
   throttledBursts: 0,
+  successfulConnections: 0,
 };
 
 const connections = new Map();
@@ -91,15 +89,15 @@ let connectionCreationInProgress = false;
 let isThrottling = false;
 
 console.log(
-  `📊 Target: ${CONFIG.MESSAGES_PER_SEC.toLocaleString()} messages/sec`
+  `�� Target: ${CONFIG.MESSAGES_PER_SEC.toLocaleString()} messages/sec`
 );
-console.log(`👥 Users: ${CONFIG.USERS.toLocaleString()}`);
+console.log(`�� Users: ${CONFIG.USERS.toLocaleString()}`);
 console.log(
   `🔌 Max Connections: ${CONFIG.MAX_CONCURRENT_CONNECTIONS.toLocaleString()}`
 );
 console.log(`💥 Burst Size: ${CONFIG.BURST_SIZE.toLocaleString()}`);
 console.log(`⚡ Burst Interval: ${CONFIG.BURST_INTERVAL}ms`);
-console.log(`🛡️  Memory Limit: ${CONFIG.MAX_MEMORY_USAGE}MB`);
+console.log(`��️  Memory Limit: ${CONFIG.MAX_MEMORY_USAGE}MB`);
 
 function checkMemoryUsage() {
   if (process.memoryUsage) {
@@ -143,7 +141,9 @@ async function createConnections() {
     );
 
     for (let i = start; i < end; i++) {
-      const socket = io("http://localhost:3001//localhost:3001", {
+      const userId = users[i];
+
+      const socket = io("http://localhost:3001", {
         transports: ["websocket"],
         timeout: 30000,
         forceNew: true,
@@ -153,6 +153,14 @@ async function createConnections() {
       socket.on("connect", () => {
         connections.set(i, socket);
         stats.connectionCount = connections.size;
+
+        // ✅ Send user_joined immediately after connection
+        socket.emit("user_joined", { userId });
+        stats.successfulConnections++;
+
+        if (stats.successfulConnections % 100 === 0) {
+          console.log(`✅ Connected: ${stats.successfulConnections} users`);
+        }
       });
 
       socket.on("connect_error", (error) => {
@@ -185,7 +193,9 @@ async function createConnections() {
   }
 
   connectionCreationInProgress = false;
-  console.log(`✅ Created ${connections.size} connections safely`);
+  console.log(
+    `✅ Created ${stats.successfulConnections} connections successfully`
+  );
 }
 
 function generateMessage() {
@@ -283,9 +293,9 @@ function logPerformance() {
       1
     )}s | Current: ${currentRate} msg/s | Avg: ${avgRateOverTime} msg/s | Users: ${
       stats.totalUsers
-    } | Connections: ${stats.connectionCount} | Errors: ${
-      stats.errors
-    } | Memory Warnings: ${stats.memoryWarnings}`
+    } | Connections: ${stats.connectionCount} | Successful: ${
+      stats.successfulConnections
+    } | Errors: ${stats.errors} | Memory Warnings: ${stats.memoryWarnings}`
   );
 
   if (parseInt(currentRate) < CONFIG.MESSAGES_PER_SEC * 0.5) {
@@ -339,12 +349,25 @@ async function startSimulation() {
     console.log(`   Messages: ${stats.totalMessages.toLocaleString()}`);
     console.log(`   Users: ${stats.totalUsers}`);
     console.log(`   Connections: ${stats.connectionCount}`);
+    console.log(`   Successful Connections: ${stats.successfulConnections}`);
     console.log(`   Errors: ${stats.errors}`);
     console.log(`   Memory Warnings: ${stats.memoryWarnings}`);
     console.log(`   Throttled Bursts: ${stats.throttledBursts}`);
 
-    connections.forEach((socket) => socket.disconnect());
-    process.exit(0);
+    // ✅ Flush Redis database on exit
+    console.log("🧹 Flushing Redis database...");
+    fetch("http://localhost:3001/reset")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("✅ Redis database cleared:", data.message);
+        connections.forEach((socket) => socket.disconnect());
+        process.exit(0);
+      })
+      .catch((error) => {
+        console.log("⚠️  Could not clear Redis:", error.message);
+        connections.forEach((socket) => socket.disconnect());
+        process.exit(0);
+      });
   });
 }
 

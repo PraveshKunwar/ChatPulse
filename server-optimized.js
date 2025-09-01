@@ -11,10 +11,10 @@ const io = new Server(server, {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
-  maxHttpBufferSize: 1e6,
-  pingTimeout: 30000,
-  pingInterval: 10000,
-  upgradeTimeout: 10000,
+  maxHttpBufferSize: 5e5,
+  pingTimeout: 20000,
+  pingInterval: 8000,
+  upgradeTimeout: 5000,
   allowUpgrades: true,
   transports: ["websocket", "polling"],
   allowRequest: (req, callback) => {
@@ -28,9 +28,9 @@ const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 const redisClient = Redis.createClient({
   url: redisUrl,
   socket: {
-    connectTimeout: 5000,
-    keepAlive: 30000,
-    reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+    connectTimeout: 3000,
+    keepAlive: 15000,
+    reconnectStrategy: (retries) => Math.min(retries * 30, 300),
   },
 });
 
@@ -60,6 +60,12 @@ redisClient.on("ready", () => {
       console.log("🧹 Cleared existing keywords");
     })
     .catch(console.error);
+  redisClient
+    .flushDb()
+    .then(() => {
+      console.log("🧹 Cleared Redis database on startup");
+    })
+    .catch(console.error);
 });
 
 const activeUsers = new Map();
@@ -80,8 +86,11 @@ setInterval(() => {
     console.log(`🧹 Cleaned up ${cleanedCount} zombie connections`);
   }
 
-  if (global.gc) global.gc();
-}, 10000);
+  if (process.memoryUsage().heapUsed > 500 * 1024 * 1024) {
+    global.gc && global.gc();
+    console.log("🧠 Forced garbage collection");
+  }
+}, 2000);
 
 let messageCount = 0;
 let lastMetricsTime = Date.now();
@@ -130,19 +139,24 @@ setInterval(async () => {
 }, 1000);
 
 io.on("connection", (socket) => {
-  if (io.engine.clientsCount > 2000) {
+  const currentConnections = io.engine.clientsCount;
+  const maxConnections = 2500;
+
+  if (currentConnections > maxConnections) {
     console.log(
-      `🚫 Connection limit reached (${io.engine.clientsCount}), rejecting ${socket.id}`
+      `🚫 Connection limit reached (${currentConnections}/${maxConnections}), rejecting ${socket.id}`
     );
     socket.disconnect(true);
     return;
   }
 
-  console.log(`User connected: ${socket.id} (${io.engine.clientsCount} total)`);
+  console.log(
+    `User connected: ${socket.id} (${currentConnections}/${maxConnections})`
+  );
 
   // Force cleanup of rejected connections
   socket.on("disconnect", () => {
-    if (io.engine.clientsCount > 1000) {
+    if (io.engine.clientsCount > 3000) {
       console.log(`🧹 Cleaning up rejected connection ${socket.id}`);
     }
   });
@@ -222,8 +236,9 @@ io.on("connection", (socket) => {
 
 app.get("/health", (req, res) => {
   const memUsage = process.memoryUsage();
+  const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
   res.json({
-    status: "ok",
+    status: heapUsedMB > 400 ? "warning" : "ok", // Alert if over 400MB
     timestamp: new Date().toISOString(),
     memory: {
       rss: Math.round(memUsage.rss / 1024 / 1024) + " MB",
@@ -234,8 +249,10 @@ app.get("/health", (req, res) => {
     connections: {
       activeUsers: activeUsers.size,
       totalSockets: io.engine.clientsCount,
+      maxConnections: 2500, // # of max connections
     },
     uptime: process.uptime(),
+    memoryPressure: heapUsedMB > 300 ? "high" : "normal",
   });
 });
 
@@ -316,6 +333,22 @@ app.get("/nuclear-cleanup", (req, res) => {
     totalSockets: io.engine.clientsCount,
     memory: process.memoryUsage(),
   });
+});
+
+app.get("/reset", async (req, res) => {
+  try {
+    await redisClient.flushDb();
+    messageCount = 0;
+    lastMetricsTime = Date.now();
+
+    res.json({
+      message: "Redis database cleared",
+      timestamp: new Date().toISOString(),
+      memory: process.memoryUsage(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
