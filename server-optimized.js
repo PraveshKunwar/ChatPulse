@@ -51,15 +51,16 @@ redisClient.on("connect", () => {
   console.log("✅ Redis connected");
 });
 
-redisClient.on("ready", () => {
+redisClient.on("ready", async () => {
   console.log("✅ Redis ready");
 
-  redisClient
-    .del("keywords")
-    .then(() => {
-      console.log("🧹 Cleared existing keywords");
-    })
-    .catch(console.error);
+  try {
+    await redisClient.configSet("save", "");
+    await redisClient.configSet("appendonly", "no");
+    console.log("🚀 Redis persistence disabled for testing");
+  } catch (error) {
+    console.log("⚠️  Could not disable Redis persistence:", error.message);
+  }
   redisClient
     .flushDb()
     .then(() => {
@@ -86,11 +87,11 @@ setInterval(() => {
     console.log(`🧹 Cleaned up ${cleanedCount} zombie connections`);
   }
 
-  if (process.memoryUsage().heapUsed > 500 * 1024 * 1024) {
+  if (process.memoryUsage().heapUsed > 400 * 1024 * 1024) {
     global.gc && global.gc();
     console.log("🧠 Forced garbage collection");
   }
-}, 2000);
+}, 1500);
 
 let messageCount = 0;
 let lastMetricsTime = Date.now();
@@ -140,7 +141,7 @@ setInterval(async () => {
 
 io.on("connection", (socket) => {
   const currentConnections = io.engine.clientsCount;
-  const maxConnections = 2500;
+  const maxConnections = 3000;
 
   if (currentConnections > maxConnections) {
     console.log(
@@ -249,7 +250,7 @@ app.get("/health", (req, res) => {
     connections: {
       activeUsers: activeUsers.size,
       totalSockets: io.engine.clientsCount,
-      maxConnections: 2500, // # of max connections
+      maxConnections: 3000, // # of max connections
     },
     uptime: process.uptime(),
     memoryPressure: heapUsedMB > 300 ? "high" : "normal",

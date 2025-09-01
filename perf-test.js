@@ -20,7 +20,7 @@ let startTime = Date.now();
 let connections = [];
 console.log(`🔌 Creating ${NUM_USERS} WebSocket connections...`);
 for (let i = 0; i < NUM_USERS; i++) {
-  const socket = io("http://localhost:3001
+  const socket = io("http://localhost:3001");
   socket.on("connect", () => {
     console.log(`✅ User ${i + 1} connected`);
     let messageCount = 0;
