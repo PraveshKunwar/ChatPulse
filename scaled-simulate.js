@@ -5,12 +5,12 @@ console.log(
 );
 const BACKEND_INSTANCES = [
   "http://localhost:3001",
-  "http://localhost:3001",
-  "http://localhost:3001",
+  "http://localhost:3002",
+  "http://localhost:3003",
 ];
 const CONFIG = {
-  TOTAL_USERS: 3000,
-  USERS_PER_INSTANCE: 1000,
+  TOTAL_USERS: 6000, // ✅ Reduced to more realistic target
+  USERS_PER_INSTANCE: 2000, // ✅ Reduced per instance
   MESSAGES_PER_SEC: 15000,
   BURST_SIZE: 100,
   BURST_INTERVAL: 50,
@@ -36,9 +36,18 @@ async function createConnection(userId) {
       timeout: 30000,
       forceNew: true,
       reconnection: false,
+      upgrade: true,
+      rememberUpgrade: false,
+      autoConnect: true,
+      pingTimeout: 60000,
+      pingInterval: 25000,
     });
     socket.on("connect", () => {
-      console.log(`✅ ${userId} connected to ${backendUrl}`);
+      console.log(
+        `✅ ${userId} connected to ${backendUrl} (${
+          connections.size + 1
+        } total)`
+      );
       socket.emit("user_joined", { userId });
     });
     socket.on("disconnect", () => {
@@ -63,7 +72,7 @@ async function createConnections() {
   console.log(
     `🔌 Creating ${CONFIG.TOTAL_USERS} connections across ${BACKEND_INSTANCES.length} backends...`
   );
-  const batchSize = 100;
+  const batchSize = 50;
   const batches = Math.ceil(CONFIG.TOTAL_USERS / batchSize);
   for (let batch = 0; batch < batches; batch++) {
     const start = batch * batchSize;
@@ -79,7 +88,7 @@ async function createConnections() {
       promises.push(createConnection(userId));
     }
     await Promise.allSettled(promises);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
   console.log(`✅ Created ${connections.size} connections`);
 }

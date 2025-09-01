@@ -71,12 +71,15 @@ const PulseIcon = () => (
 function App() {
   const {
     messagesPerSec,
-    activeUsers,
     keywords,
     isConnected,
     connectionAttempts,
     isReconnecting,
+    aggregatedData,
   } = useSocket();
+
+  // Debug aggregated data
+  console.log("🔍 App aggregatedData:", aggregatedData);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white font-inter">
@@ -121,25 +124,36 @@ function App() {
       {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <MetricsCard
             title="Active Users"
-            value={activeUsers}
-            subtitle="Currently online"
+            value={aggregatedData.totalActiveUsers}
+            subtitle={`${aggregatedData.instanceCount} instance${
+              aggregatedData.instanceCount > 1 ? "s" : ""
+            }`}
             icon={<UserIcon />}
             color="emerald"
           />
           <MetricsCard
+            title="Total Connections"
+            value={aggregatedData.totalConnections}
+            subtitle="Across all instances"
+            icon={<MessageIcon />}
+            color="blue"
+          />
+          <MetricsCard
             title="Messages/sec"
             value={messagesPerSec}
-            subtitle="Real-time rate"
+            subtitle="Aggregated rate"
             icon={<MessageIcon />}
             color="cyan"
           />
           <MetricsCard
             title="System Status"
             value={isConnected ? "Online" : "Offline"}
-            subtitle="WebSocket connection"
+            subtitle={`${aggregatedData.instanceCount} instance${
+              aggregatedData.instanceCount > 1 ? "s" : ""
+            } connected`}
             icon={<ActivityIcon />}
             color={isConnected ? "emerald" : "red"}
           />
@@ -178,7 +192,7 @@ function App() {
                   </span>
                 </div>
                 <span className="text-2xl font-bold text-emerald-400">
-                  {activeUsers}
+                  {aggregatedData.totalActiveUsers}
                 </span>
               </div>
 
@@ -196,6 +210,71 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Instance Metrics */}
+        {aggregatedData.instanceCount > 0 && (
+          <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Instance Metrics</h3>
+              <div className="flex space-x-2">
+                {Array.from(
+                  { length: aggregatedData.instanceCount },
+                  (_, i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 bg-green-400 rounded-full animate-pulse"
+                      style={{ animationDelay: `${i * 0.2}s` }}
+                    ></div>
+                  )
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Object.entries(aggregatedData.instanceMetrics || {}).map(
+                ([instanceUrl, metrics], index) => {
+                  const instanceNumber = instanceUrl.split(":").pop();
+                  return (
+                    <div
+                      key={instanceUrl}
+                      className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-600/30"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-300">
+                          Instance {instanceNumber}
+                        </h4>
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Users:</span>
+                          <span className="text-emerald-400 font-medium">
+                            {metrics.activeUsers || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Msg/sec:</span>
+                          <span className="text-cyan-400 font-medium">
+                            {metrics.messagesPerSec || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Memory:</span>
+                          <span className="text-blue-400 font-medium">
+                            {metrics.memoryUsage
+                              ? `${Math.round(
+                                  metrics.memoryUsage.heapUsed / 1024 / 1024
+                                )} MB`
+                              : "0 MB"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        )}
 
         {/* System Info */}
         <div className="bg-black/20 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl p-6">
@@ -215,7 +294,7 @@ function App() {
               ></div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="text-gray-400">
               <span className="block text-xs uppercase tracking-wider mb-1">
                 Status
@@ -226,6 +305,14 @@ function App() {
                 }`}
               >
                 {isConnected ? "Operational" : "Disconnected"}
+              </span>
+            </div>
+            <div className="text-gray-400">
+              <span className="block text-xs uppercase tracking-wider mb-1">
+                Instances
+              </span>
+              <span className="font-semibold text-blue-400">
+                {aggregatedData.instanceCount}/3 Active
               </span>
             </div>
             <div className="text-gray-400">
@@ -245,9 +332,9 @@ function App() {
                 Load
               </span>
               <span className="font-semibold text-purple-400">
-                {activeUsers > 500
+                {aggregatedData.totalActiveUsers > 500
                   ? "Heavy"
-                  : activeUsers > 100
+                  : aggregatedData.totalActiveUsers > 100
                   ? "Moderate"
                   : "Light"}
               </span>

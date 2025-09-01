@@ -4,6 +4,22 @@ const { Server } = require("socket.io");
 const Redis = require("redis");
 
 const app = express();
+
+// Add CORS middleware for HTTP endpoints
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -11,17 +27,19 @@ const io = new Server(server, {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
-  maxHttpBufferSize: 5e5,
-  pingTimeout: 20000,
-  pingInterval: 8000,
-  upgradeTimeout: 5000,
+  maxHttpBufferSize: 2e5,
+  pingTimeout: 15000,
+  pingInterval: 6000,
+  upgradeTimeout: 3000,
   allowUpgrades: true,
-  transports: ["websocket", "polling"],
+  transports: ["websocket"],
   allowRequest: (req, callback) => {
     const clientIP =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
     callback(null, true);
   },
+  perMessageDeflate: false,
+  connectTimeout: 10000,
 });
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
@@ -141,7 +159,7 @@ setInterval(async () => {
 
 io.on("connection", (socket) => {
   const currentConnections = io.engine.clientsCount;
-  const maxConnections = 3000;
+  const maxConnections = parseInt(process.env.MAX_CONNECTIONS) || 4000;
 
   if (currentConnections > maxConnections) {
     console.log(
@@ -157,7 +175,7 @@ io.on("connection", (socket) => {
 
   // Force cleanup of rejected connections
   socket.on("disconnect", () => {
-    if (io.engine.clientsCount > 3000) {
+    if (io.engine.clientsCount > 4500) {
       console.log(`🧹 Cleaning up rejected connection ${socket.id}`);
     }
   });
@@ -346,6 +364,62 @@ app.get("/reset", async (req, res) => {
       message: "Redis database cleared",
       timestamp: new Date().toISOString(),
       memory: process.memoryUsage(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ✅ Add aggregated metrics endpoint
+app.get("/aggregated-health", async (req, res) => {
+  try {
+    const instances = [
+      "http://backend-1:3001",
+      "http://backend-2:3001",
+      "http://backend-3:3001",
+    ];
+
+    const instanceData = await Promise.allSettled(
+      instances.map(async (url) => {
+        const response = await fetch(`${url}/health`);
+        return response.json();
+      })
+    );
+
+    const validData = instanceData
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+
+    const totalConnections = validData.reduce(
+      (sum, data) => sum + (data.connections?.totalSockets || 0),
+      0
+    );
+
+    const totalActiveUsers = validData.reduce(
+      (sum, data) => sum + (data.connections?.activeUsers || 0),
+      0
+    );
+
+    const totalMemory = validData.reduce((sum, data) => {
+      const memMB = parseInt(data.memory?.heapUsed?.replace(" MB", "") || "0");
+      return sum + memMB;
+    }, 0);
+
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      aggregated: {
+        totalConnections,
+        totalActiveUsers,
+        totalMemory: `${totalMemory} MB`,
+        instanceCount: validData.length,
+        instances: validData.map((data, i) => ({
+          instance: i + 1,
+          connections: data.connections?.totalSockets || 0,
+          activeUsers: data.connections?.activeUsers || 0,
+          memory: data.memory?.heapUsed || "0 MB",
+        })),
+      },
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
