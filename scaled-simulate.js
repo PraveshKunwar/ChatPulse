@@ -7,11 +7,13 @@ const BACKEND_INSTANCES = [
   "http://localhost:3001",
   "http://localhost:3002",
   "http://localhost:3003",
+  "http://localhost:3004",
+  "http://localhost:3005",
 ];
 const CONFIG = {
-  TOTAL_USERS: 6000, // ✅ Reduced to more realistic target
-  USERS_PER_INSTANCE: 2000, // ✅ Reduced per instance
-  MESSAGES_PER_SEC: 15000,
+  TOTAL_USERS: 15000,
+  USERS_PER_INSTANCE: 3000,
+  MESSAGES_PER_SEC: 4000,
   BURST_SIZE: 100,
   BURST_INTERVAL: 50,
   USER_JOIN_RATE: 50,
@@ -33,14 +35,18 @@ async function createConnection(userId) {
   try {
     const socket = io(backendUrl, {
       transports: ["websocket"],
-      timeout: 30000,
+      timeout: 5000,
       forceNew: true,
-      reconnection: false,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 100,
+      reconnectionDelayMax: 2000,
+      maxReconnectionAttempts: 10,
       upgrade: true,
       rememberUpgrade: false,
       autoConnect: true,
-      pingTimeout: 60000,
-      pingInterval: 25000,
+      pingTimeout: 30000,
+      pingInterval: 15000,
     });
     socket.on("connect", () => {
       console.log(
@@ -50,13 +56,39 @@ async function createConnection(userId) {
       );
       socket.emit("user_joined", { userId });
     });
-    socket.on("disconnect", () => {
-      console.log(`❌ ${userId} disconnected from ${backendUrl}`);
+    socket.on("disconnect", (reason) => {
+      console.log(`❌ ${userId} disconnected from ${backendUrl}: ${reason}`);
+      if (
+        reason === "io server disconnect" ||
+        reason === "io client disconnect"
+      ) {
+        connections.delete(userId);
+      }
+    });
+    socket.on("reconnect", (attemptNumber) => {
+      console.log(
+        `🔄 ${userId} reconnected to ${backendUrl} after ${attemptNumber} attempts`
+      );
+    });
+    socket.on("reconnect_attempt", (attemptNumber) => {
+      console.log(
+        `🔄 ${userId} attempting to reconnect to ${backendUrl} (attempt ${attemptNumber})`
+      );
+    });
+    socket.on("reconnect_error", (error) => {
+      console.error(
+        `❌ ${userId} reconnection error on ${backendUrl}:`,
+        error.message
+      );
+    });
+    socket.on("reconnect_failed", () => {
+      console.error(
+        `❌ ${userId} failed to reconnect to ${backendUrl} after all attempts`
+      );
       connections.delete(userId);
     });
     socket.on("error", (error) => {
       console.error(`❌ ${userId} error on ${backendUrl}:`, error.message);
-      connections.delete(userId);
     });
     connections.set(userId, { socket, backendUrl });
     return socket;
@@ -116,16 +148,16 @@ function sendMessages() {
     "analytics",
   ];
   setInterval(() => {
-    const activeConnections = Array.from(connections.values());
+    const activeConnections = Array.from(connections.entries());
     if (activeConnections.length === 0) return;
     for (let i = 0; i < CONFIG.BURST_SIZE; i++) {
-      const connection =
+      const [userId, connection] =
         activeConnections[Math.floor(Math.random() * activeConnections.length)];
       if (connection && connection.socket.connected) {
         const message =
           messageCorpus[Math.floor(Math.random() * messageCorpus.length)];
         connection.socket.emit("message_sent", {
-          userId: connection.socket.id,
+          userId: userId,
           text: message,
         });
       }

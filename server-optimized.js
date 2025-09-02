@@ -92,9 +92,22 @@ const userSockets = new Map();
 
 setInterval(() => {
   let cleanedCount = 0;
+  const now = Date.now();
+  const staleThreshold = 60000; // 1 minute
 
   for (const [socketId, userId] of userSockets.entries()) {
-    if (!io.sockets.sockets.has(socketId)) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (!socket) {
+      userSockets.delete(socketId);
+      activeUsers.delete(userId);
+      cleanedCount++;
+    } else if (
+      socket.lastActivity &&
+      now - socket.lastActivity > staleThreshold
+    ) {
+      // Force disconnect stale connections
+      console.log(`🔄 Disconnecting stale connection: ${userId}`);
+      socket.disconnect(true);
       userSockets.delete(socketId);
       activeUsers.delete(userId);
       cleanedCount++;
@@ -102,7 +115,7 @@ setInterval(() => {
   }
 
   if (cleanedCount > 0) {
-    console.log(`🧹 Cleaned up ${cleanedCount} zombie connections`);
+    console.log(`🧹 Cleaned up ${cleanedCount} zombie/stale connections`);
   }
 
   if (process.memoryUsage().heapUsed > 400 * 1024 * 1024) {
@@ -234,6 +247,19 @@ io.on("connection", (socket) => {
 
     io.emit("metrics", { activeUsers: activeUsers.size });
     console.log(`User ${userId} left (${activeUsers.size} total)`);
+  });
+
+  socket.on("ping", ({ userId, timestamp }) => {
+    // Respond to ping with pong to keep connection alive
+    socket.emit("pong", { userId, timestamp, serverTime: Date.now() });
+  });
+
+  socket.on("user_activity", ({ userId, timestamp, type }) => {
+    // Handle keep-alive activity
+    if (type === "keepalive") {
+      // Update user's last activity time
+      socket.lastActivity = Date.now();
+    }
   });
 
   socket.on("disconnect", () => {
@@ -377,6 +403,8 @@ app.get("/aggregated-health", async (req, res) => {
       "http://backend-1:3001",
       "http://backend-2:3001",
       "http://backend-3:3001",
+      "http://backend-4:3001",
+      "http://backend-5:3001",
     ];
 
     const instanceData = await Promise.allSettled(

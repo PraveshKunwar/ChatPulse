@@ -312,7 +312,7 @@ function App() {
                 Instances
               </span>
               <span className="font-semibold text-blue-400">
-                {aggregatedData.instanceCount}/3 Active
+                {aggregatedData.instanceCount}/5 Active
               </span>
             </div>
             <div className="text-gray-400">

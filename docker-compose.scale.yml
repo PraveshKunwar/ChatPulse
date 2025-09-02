@@ -5,7 +5,7 @@ services:
     image: redis:7-alpine
     ports: ["6379:6379"]
     volumes: [redis_data:/data]
-    command: redis-server --appendonly no --save "" --maxmemory 1gb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly no --save "" --maxmemory 2gb --maxmemory-policy allkeys-lru --tcp-keepalive 60 --timeout 300 --tcp-backlog 511
     restart: unless-stopped
 
   backend-1:
@@ -17,7 +17,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - INSTANCE_ID=1
-      - MAX_CONNECTIONS=2500
+      - MAX_CONNECTIONS=2000
     restart: unless-stopped
     deploy:
       resources:
@@ -35,7 +35,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - INSTANCE_ID=2
-      - MAX_CONNECTIONS=2500
+      - MAX_CONNECTIONS=2000
     restart: unless-stopped
     deploy:
       resources:
@@ -53,7 +53,43 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - INSTANCE_ID=3
-      - MAX_CONNECTIONS=2500
+      - MAX_CONNECTIONS=2000
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  backend-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports: ["3004:3001"]
+    depends_on: [redis]
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - INSTANCE_ID=4
+      - MAX_CONNECTIONS=2000
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  backend-5:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports: ["3005:3001"]
+    depends_on: [redis]
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - INSTANCE_ID=5
+      - MAX_CONNECTIONS=2000
     restart: unless-stopped
     deploy:
       resources:
@@ -67,7 +103,7 @@ services:
     ports: ["80:80"]
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on: [backend-1, backend-2, backend-3]
+    depends_on: [backend-1, backend-2, backend-3, backend-4, backend-5]
     restart: unless-stopped
 
   frontend:

@@ -5,6 +5,8 @@ const BACKEND_INSTANCES = [
   "http://localhost:3001",
   "http://localhost:3002",
   "http://localhost:3003",
+  "http://localhost:3004",
+  "http://localhost:3005",
 ];
 
 export const useSocket = () => {
@@ -72,12 +74,18 @@ export const useSocket = () => {
     const createSocketConnection = (instanceUrl) => {
       const socket = io(instanceUrl, {
         transports: ["websocket"],
-        timeout: 3000,
+        timeout: 2000,
         forceNew: true,
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 20,
+        reconnectionDelay: 100,
+        reconnectionDelayMax: 2000,
+        maxReconnectionAttempts: 20,
+        upgrade: true,
+        rememberUpgrade: false,
+        autoConnect: true,
+        pingTimeout: 20000,
+        pingInterval: 10000,
       });
 
       const handleConnect = () => {
@@ -87,6 +95,39 @@ export const useSocket = () => {
 
       const handleDisconnect = (reason) => {
         console.log(`❌ Disconnected from ${instanceUrl}:`, reason);
+        if (
+          reason === "io server disconnect" ||
+          reason === "io client disconnect"
+        ) {
+          instanceMetrics.delete(instanceUrl);
+          updateConnectionStatus();
+          updateAggregatedData();
+        }
+      };
+
+      const handleReconnect = (attemptNumber) => {
+        console.log(
+          `🔄 Reconnected to ${instanceUrl} after ${attemptNumber} attempts`
+        );
+        updateConnectionStatus();
+      };
+
+      const handleReconnectAttempt = (attemptNumber) => {
+        if (attemptNumber % 5 === 0) {
+          console.log(
+            `🔄 Attempting to reconnect to ${instanceUrl} (attempt ${attemptNumber})`
+          );
+        }
+      };
+
+      const handleReconnectError = (error) => {
+        console.error(`🚫 Reconnection error to ${instanceUrl}:`, error);
+      };
+
+      const handleReconnectFailed = () => {
+        console.error(
+          `❌ Failed to reconnect to ${instanceUrl} after all attempts`
+        );
         instanceMetrics.delete(instanceUrl);
         updateConnectionStatus();
         updateAggregatedData();
@@ -94,9 +135,6 @@ export const useSocket = () => {
 
       const handleConnectError = (error) => {
         console.error(`🚫 Connection error to ${instanceUrl}:`, error);
-        instanceMetrics.delete(instanceUrl);
-        updateConnectionStatus();
-        updateAggregatedData();
       };
 
       const handleMetrics = (data) => {
@@ -110,6 +148,10 @@ export const useSocket = () => {
 
       socket.on("connect", handleConnect);
       socket.on("disconnect", handleDisconnect);
+      socket.on("reconnect", handleReconnect);
+      socket.on("reconnect_attempt", handleReconnectAttempt);
+      socket.on("reconnect_error", handleReconnectError);
+      socket.on("reconnect_failed", handleReconnectFailed);
       socket.on("connect_error", handleConnectError);
       socket.on("metrics", handleMetrics);
 
@@ -135,6 +177,10 @@ export const useSocket = () => {
       sockets.forEach((socket, instanceUrl) => {
         socket.off("connect");
         socket.off("disconnect");
+        socket.off("reconnect");
+        socket.off("reconnect_attempt");
+        socket.off("reconnect_error");
+        socket.off("reconnect_failed");
         socket.off("connect_error");
         socket.off("metrics");
         socket.disconnect();
